@@ -339,7 +339,7 @@
 <!-- Nav -->
 <nav class="nav">
   <div class="nav-logo">⚛ ATOM WEAVER</div>
-  <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+  <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false" aria-controls="navMenu">
     <span></span><span></span><span></span>
   </button>
 </nav>
@@ -684,8 +684,18 @@ function drawBarChart(canvasId, bars) {
       grad.addColorStop(0, hexToRgba(b.color, 0.7));
       grad.addColorStop(1, hexToRgba(b.color, 0.15));
       ctx.fillStyle = grad;
+      const r5 = 5;
       ctx.beginPath();
-      ctx.roundRect(bX, bY, bW, bH, 5);
+      ctx.moveTo(bX + r5, bY);
+      ctx.lineTo(bX + bW - r5, bY);
+      ctx.arcTo(bX + bW, bY, bX + bW, bY + r5, r5);
+      ctx.lineTo(bX + bW, bY + bH - r5);
+      ctx.arcTo(bX + bW, bY + bH, bX + bW - r5, bY + bH, r5);
+      ctx.lineTo(bX + r5, bY + bH);
+      ctx.arcTo(bX, bY + bH, bX, bY + bH - r5, r5);
+      ctx.lineTo(bX, bY + r5);
+      ctx.arcTo(bX, bY, bX + r5, bY, r5);
+      ctx.closePath();
       ctx.fill();
 
       // border
@@ -1007,7 +1017,7 @@ elements.forEach(el => {
 const PROJECTS = [
   { name:'Atomic Transmutation', desc:'Transmutation sequences and resonance mapping',           url:'https://github.com/www-infinity4/Atomic-Transmutation', tag:'Physics' },
   { name:'Giro',                 desc:'Operational symptomatic regulator of inertia forces',     url:'https://github.com/www-infinity4/Giro',                  tag:'Energy'  },
-  { name:'Alien Radio',          desc:'Alien sounds digital radio broadcasts',                    url:'https://github.com/www-infinity4/Alien-Radio',           tag:'Radio'   },
+  { name:'Alien Radio',          desc:'Digital alien-sound radio broadcasts',                     url:'https://github.com/www-infinity4/Alien-Radio',           tag:'Radio'   },
   { name:'Warehouse 13',         desc:'Artifact cataloging and research storage system',          url:'https://github.com/www-infinity4/Warehouse13',           tag:'Archive' },
   { name:'Astrolyzer',           desc:'Keyboard frequency analyzer — star creation engine',      url:'https://github.com/www-infinity4/Astrolyzer',            tag:'Audio'   },
   { name:'Shortwave',            desc:'Digital Grundig-style all-wave radio receiver',            url:'https://github.com/www-infinity4/Shortwave',             tag:'Radio'   },
