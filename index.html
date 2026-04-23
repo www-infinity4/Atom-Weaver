@@ -24,13 +24,18 @@
       --glow-g:      0 0 20px rgba(255,215,0,0.45);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+    html {
+      scroll-behavior: smooth;
+      background: var(--bg);
+      min-height: 100%;
+    }
     body {
       background: var(--bg);
       color: var(--text);
       font-family: 'Inter', system-ui, sans-serif;
       overflow-x: hidden;
       line-height: 1.6;
+      min-height: 100vh;
     }
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: var(--bg2); }
