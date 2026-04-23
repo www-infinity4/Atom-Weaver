@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Atom Weaver — Resonance Laboratory</title>
+
+  <style>
+    /* ── Variables ── */
+    :root {
+      --bg:          #050510;
+      --bg2:         #0d0d2b;
+      --bg3:         #1a0035;
+      --indigo:      #6366f1;
+      --violet:      #8b5cf6;
+      --cyan:        #00d4ff;
+      --gold:        #ffd700;
+      --text:        #e2e8f0;
+      --dim:         #94a3b8;
+      --glass:       rgba(99,102,241,0.07);
+      --gborder:     rgba(139,92,246,0.25);
+      --glow-c:      0 0 20px rgba(0,212,255,0.5);
+      --glow-v:      0 0 20px rgba(139,92,246,0.5);
+      --glow-g:      0 0 20px rgba(255,215,0,0.45);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, sans-serif;
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg2); }
+    ::-webkit-scrollbar-thumb { background: var(--violet); border-radius: 3px; }
+
+    /* ── Canvas BG ── */
+    #bgCanvas {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ── Nav ── */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem;
+      background: rgba(5,5,16,0.82);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--gborder);
+    }
+    .nav-logo {
+      font-family: 'Orbitron', monospace, system-ui;
+      font-size: 1.2rem; font-weight: 700; letter-spacing: 0.1em;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hamburger {
+      cursor: pointer; background: none; border: none; padding: 8px;
+      display: flex; flex-direction: column; gap: 5px; z-index: 200;
+    }
+    .hamburger span {
+      display: block; width: 28px; height: 2px;
+      background: var(--cyan); border-radius: 2px;
+      transition: all 0.3s ease; transform-origin: center;
+    }
+    .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+    .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+    .nav-menu {
+      position: fixed; top: 0; right: 0;
+      width: min(360px,100vw); height: 100vh;
+      background: rgba(8,8,30,0.97);
+      backdrop-filter: blur(20px);
+      border-left: 1px solid var(--gborder);
+      z-index: 150; padding: 5rem 2rem 2rem;
+      transform: translateX(100%);
+      transition: transform 0.4s cubic-bezier(0.4,0,0.2,1);
+      display: flex; flex-direction: column; overflow-y: auto;
+    }
+    .nav-menu.open { transform: translateX(0); }
+    .nav-menu h3 {
+      font-family: 'Orbitron', monospace; font-size: 0.7rem;
+      letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--cyan); margin-bottom: 1.5rem; opacity: 0.75;
+    }
+    .nav-menu a {
+      display: flex; align-items: center; gap: 0.75rem;
+      color: var(--text); text-decoration: none;
+      padding: 0.55rem 0.5rem; border-radius: 8px;
+      transition: all 0.2s; font-size: 0.9rem;
+      border: 1px solid transparent;
+    }
+    .nav-menu a:hover {
+      background: var(--glass); border-color: var(--gborder);
+      color: var(--cyan); transform: translateX(4px);
+    }
+    .nav-menu a.active { color: var(--cyan); }
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--violet); flex-shrink: 0;
+    }
+
+    /* ── Sections ── */
+    section { position: relative; z-index: 1; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 6rem 1.5rem; }
+
+    .s-label {
+      font-family: 'Orbitron', monospace; font-size: 0.65rem;
+      letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--cyan); margin-bottom: 0.6rem; opacity: 0.8;
+    }
+    .s-title {
+      font-family: 'Orbitron', monospace, system-ui;
+      font-size: clamp(1.5rem,4vw,2.8rem); font-weight: 700;
+      background: linear-gradient(135deg, #fff 30%, var(--violet));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 0.75rem;
+    }
+    .s-desc { color: var(--dim); max-width: 620px; margin-bottom: 2.5rem; font-size: 0.95rem; }
+    .glow-bar {
+      width: 80px; height: 3px;
+      background: linear-gradient(90deg, var(--indigo), var(--cyan));
+      border-radius: 2px; margin: 0.5rem 0 1.75rem;
+      box-shadow: 0 0 10px var(--indigo);
+    }
+
+    /* ── Hero ── */
+    .hero {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 6rem 1.5rem 4rem;
+    }
+    .inf-symbol {
+      font-size: clamp(5rem,16vw,11rem); line-height: 1;
+      background: linear-gradient(135deg, var(--cyan), var(--indigo), var(--violet));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: pulse-inf 3.5s ease-in-out infinite;
+    }
+    @keyframes pulse-inf {
+      0%,100% { filter: drop-shadow(0 0 24px rgba(99,102,241,0.55)); }
+      50%      { filter: drop-shadow(0 0 55px rgba(0,212,255,0.75)); }
+    }
+    .hero h1 {
+      font-family: 'Orbitron', monospace, system-ui;
+      font-size: clamp(2rem,6vw,4.5rem); font-weight: 900;
+      letter-spacing: 0.15em; margin: 0.4rem 0 1rem;
+      background: linear-gradient(135deg,#fff,var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-tagline {
+      color: var(--dim); font-size: clamp(0.85rem,1.8vw,1.1rem);
+      max-width: 580px; margin-bottom: 3rem; letter-spacing: 0.04em;
+    }
+    .hero-stats {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      gap: 1rem; max-width: 680px; width: 100%; margin-bottom: 2.5rem;
+    }
+    .stat-card {
+      background: var(--glass); border: 1px solid var(--gborder);
+      border-radius: 16px; padding: 1.4rem 1rem;
+      backdrop-filter: blur(8px); transition: all 0.3s;
+    }
+    .stat-card:hover { transform: translateY(-5px); box-shadow: var(--glow-v); border-color: var(--violet); }
+    .stat-card .metal { font-family: 'Orbitron', monospace; font-size: 1.7rem; font-weight: 700; }
+    .stat-card .label { font-size: 0.7rem; color: var(--dim); letter-spacing: 0.1em; text-transform: uppercase; }
+    .stat-card .volt  { font-size: 1rem; margin-top: 0.2rem; }
+    .cu .metal { color: var(--gold); }
+    .pd .metal { color: var(--violet); }
+    .ag .metal { color: var(--cyan); }
+    .scroll-hint { color: var(--dim); font-size: 0.8rem; letter-spacing: 0.1em; animation: bounce 2s ease-in-out infinite; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
+
+    /* ── Glass Card ── */
+    .card {
+      background: var(--glass); border: 1px solid var(--gborder);
+      border-radius: 20px; padding: 2rem; backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    .card:hover { border-color: var(--violet); box-shadow: 0 8px 32px rgba(139,92,246,0.18); }
+
+    /* ── Ladder section ── */
+    .ladder-grid { display: grid; grid-template-columns: 1fr 1.6fr; gap: 2rem; align-items: start; }
+    .stack-wrap { display: flex; flex-direction: column; align-items: center; }
+    .plate {
+      width: 100%; max-width: 270px; border-radius: 10px;
+      padding: 0.85rem 1.25rem; text-align: center;
+      transition: transform 0.25s; cursor: default;
+    }
+    .plate:hover { transform: scaleX(1.06); }
+    .plate-ag { background: linear-gradient(90deg,rgba(0,212,255,.14),rgba(0,212,255,.04)); border:1px solid var(--cyan); box-shadow: 0 0 18px rgba(0,212,255,.18); }
+    .plate-pd { background: linear-gradient(90deg,rgba(139,92,246,.14),rgba(139,92,246,.04)); border:1px solid var(--violet); box-shadow: 0 0 18px rgba(139,92,246,.18); }
+    .plate-cu { background: linear-gradient(90deg,rgba(255,215,0,.14),rgba(255,215,0,.04)); border:1px solid var(--gold); box-shadow: 0 0 18px rgba(255,215,0,.18); }
+    .plate-name { font-family: 'Orbitron', monospace; font-size: 1rem; font-weight: 700; }
+    .plate-num  { font-size: 0.72rem; color: var(--dim); }
+    .gap-row { display: flex; flex-direction: column; align-items: center; padding: 4px 0; }
+    .gap-line { width: 2px; height: 22px; background: linear-gradient(180deg,var(--violet),var(--gold)); }
+    .gap-lbl {
+      background: rgba(5,5,16,.92); border: 1px solid var(--gborder);
+      border-radius: 7px; padding: 0.15rem 0.55rem;
+      font-size: 0.75rem; font-family: 'Orbitron', monospace;
+      color: var(--gold); white-space: nowrap; margin: 3px 0;
+    }
+    .chart-h { position: relative; height: 280px; }
+    .chart-h2 { position: relative; height: 240px; }
+    .charts-col { display: flex; flex-direction: column; gap: 1.5rem; }
+    hr.div { border: none; height: 1px; background: linear-gradient(90deg,transparent,var(--gborder),transparent); }
+
+    /* ── Control section ── */
+    .ctrl-grid { display: grid; grid-template-columns: 1fr 1.4fr; gap: 2rem; margin-bottom: 2rem; }
+    /* Be atom */
+    .be-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .atom-ring { position: relative; width: 170px; height: 170px; margin: 0 auto 1rem; }
+    .orbit {
+      position: absolute; top: 50%; left: 50%;
+      border: 1px solid rgba(139,92,246,.4); border-radius: 50%;
+      animation: spin linear infinite;
+    }
+    .orbit-1 { width:80px;  height:80px;  margin:-40px 0 0 -40px; animation-duration:2s; }
+    .orbit-2 { width:130px; height:130px; margin:-65px 0 0 -65px; animation-duration:3.8s; animation-direction:reverse; border-style:dashed; }
+    .orbit-3 { width:170px; height:170px; margin:-85px 0 0 -85px; animation-duration:6.5s; opacity:.35; }
+    .electron {
+      position: absolute; width: 8px; height: 8px;
+      background: var(--cyan); border-radius: 50%;
+      box-shadow: 0 0 8px var(--cyan); top: -4px; left: 50%; margin-left: -4px;
+    }
+    .nucleus {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: 44px; height: 44px; border-radius: 50%;
+      background: radial-gradient(circle, var(--indigo), var(--violet));
+      box-shadow: 0 0 22px var(--indigo), 0 0 44px rgba(99,102,241,.4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.65rem; font-family: 'Orbitron', monospace; font-weight: 700;
+      text-align: center; z-index: 2; line-height: 1.2;
+    }
+    @keyframes spin {
+      from { transform: translate(-50%,-50%) rotate(0deg); }
+      to   { transform: translate(-50%,-50%) rotate(360deg); }
+    }
+    /* Voltage */
+    .volt-ctrl { display: flex; flex-direction: column; gap: 0.9rem; }
+    .volt-display {
+      font-family: 'Orbitron', monospace; font-size: 3rem; font-weight: 700;
+      color: var(--cyan); text-shadow: var(--glow-c); text-align: center;
+    }
+    .volt-unit { font-size: 1.1rem; color: var(--dim); }
+    .volt-slider {
+      -webkit-appearance: none; width: 100%; height: 6px;
+      border-radius: 3px; background: linear-gradient(90deg, var(--bg2), var(--violet));
+      outline: none; cursor: pointer;
+    }
+    .volt-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 24px; height: 24px;
+      border-radius: 50%; background: var(--cyan);
+      box-shadow: var(--glow-c); cursor: pointer; transition: transform .15s;
+    }
+    .volt-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+    .layer-grid { display: grid; grid-template-columns: repeat(6,1fr); gap: 4px; }
+    .cu-layer {
+      aspect-ratio: 1; border-radius: 4px;
+      background: rgba(255,215,0,.08); border: 1px solid rgba(255,215,0,.18);
+      transition: all 0.25s; display: flex; align-items: center; justify-content: center;
+      font-size: 0.5rem; font-family: 'Orbitron', monospace; color: rgba(255,215,0,.45);
+    }
+    .cu-layer.active { background: rgba(255,215,0,.3); border-color: var(--gold); box-shadow: 0 0 10px rgba(255,215,0,.45); color: var(--gold); }
+    .cu-layer.resonating { animation: layer-pulse .85s ease-in-out infinite; }
+    @keyframes layer-pulse {
+      0%,100% { box-shadow: 0 0 6px rgba(255,215,0,.3); }
+      50%      { box-shadow: 0 0 22px rgba(255,215,0,.85); }
+    }
+    .instr-box {
+      font-family: monospace; font-size: 0.82rem; color: var(--cyan);
+      background: rgba(0,212,255,.05); border: 1px solid rgba(0,212,255,.2);
+      border-radius: 8px; padding: 0.65rem 1rem; min-height: 2.4rem;
+      word-break: break-word;
+    }
+    /* Hydrogen pattern cards */
+    .h-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(130px,1fr)); gap: 1.2rem; margin-top: 1.5rem; }
+    .h-card {
+      background: var(--glass); border: 1px solid var(--gborder);
+      border-radius: 12px; padding: 1rem; text-align: center;
+      transition: all 0.3s; cursor: default;
+    }
+    .h-card:hover { border-color: var(--violet); transform: translateY(-4px); box-shadow: var(--glow-v); }
+    .h-sym { font-family: 'Orbitron', monospace; font-size: 1.4rem; font-weight: 700; margin-bottom: 0.2rem; }
+    .h-desc { font-size: 0.68rem; color: var(--dim); line-height: 1.35; }
+
+    /* ── Projects ── */
+    .proj-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(230px,1fr)); gap: 1rem; }
+    .proj-card {
+      background: var(--glass); border: 1px solid var(--gborder);
+      border-radius: 16px; padding: 1.4rem; text-decoration: none;
+      color: var(--text); transition: all 0.3s;
+      display: flex; flex-direction: column; gap: 0.45rem;
+    }
+    .proj-card:hover { border-color: var(--indigo); box-shadow: var(--glow-v); transform: translateY(-5px); color: var(--text); }
+    .p-name { font-family: 'Orbitron', monospace; font-size: 0.85rem; font-weight: 700; color: var(--cyan); }
+    .p-desc { font-size: 0.78rem; color: var(--dim); flex: 1; }
+    .p-tag {
+      font-size: 0.68rem; padding: 0.1rem 0.45rem; border-radius: 4px; display: inline-block;
+      background: rgba(139,92,246,.18); border: 1px solid rgba(139,92,246,.3); color: var(--violet);
+    }
+
+    /* ── Scroll reveal ── */
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity .75s ease, transform .75s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ── Footer ── */
+    footer {
+      position: relative; z-index: 1; text-align: center;
+      padding: 3rem 1.5rem;
+      border-top: 1px solid var(--gborder);
+      color: var(--dim); font-size: 0.82rem;
+    }
+    .f-logo {
+      font-family: 'Orbitron', monospace; font-size: 1.4rem; margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .ladder-grid, .ctrl-grid { grid-template-columns: 1fr; }
+      .hero-stats { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Particle background -->
+<canvas id="bgCanvas"></canvas>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="nav-logo">⚛ ATOM WEAVER</div>
+  <button class="hamburger" id="hamburger" aria-label="Open menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</nav>
+
+<div class="nav-menu" id="navMenu" role="dialog" aria-label="Site navigation">
+  <h3>∞ Infinity4 Projects</h3>
+  <a href="#" class="active"><span class="dot" style="background:var(--cyan)"></span>Atom Weaver</a>
+  <a href="https://github.com/www-infinity4/Atomic-Transmutation" target="_blank" rel="noopener noreferrer"><span class="dot"></span>Atomic Transmutation</a>
+  <a href="https://github.com/www-infinity4/Giro" target="_blank" rel="noopener noreferrer"><span class="dot"></span>Giro</a>
+  <a href="https://github.com/www-infinity4/Alien-Radio" target="_blank" rel="noopener noreferrer"><span class="dot"></span>Alien Radio</a>
+  <a href="https://github.com/www-infinity4/Warehouse13" target="_blank" rel="noopener noreferrer"><span class="dot"></span>Warehouse 13</a>
+  <a href="https://github.com/www-infinity4/Astrolyzer" target="_blank" rel="noopener noreferrer"><span class="dot"></span>Astrolyzer</a>
+  <a href="https://github.com/www-infinity4/Shortwave" target="_blank" rel="noopener noreferrer"><span class="dot"></span>Shortwave</a>
+  <a href="https://github.com/www-infinity4/ESCAPE-FROM-NEW-YORK" target="_blank" rel="noopener noreferrer"><span class="dot"></span>Escape From New York</a>
+  <a href="https://github.com/www-infinity4/Alien-Coin" target="_blank" rel="noopener noreferrer"><span class="dot"></span>Alien Coin</a>
+  <a href="https://github.com/www-infinity4/Bitcoin-Tonight-Coin" target="_blank" rel="noopener noreferrer"><span class="dot"></span>Bitcoin Tonight Coin</a>
+  <a href="https://github.com/www-infinity4/Utopia" target="_blank" rel="noopener noreferrer"><span class="dot"></span>Utopia</a>
+  <a href="https://github.com/www-infinity4/Radiation" target="_blank" rel="noopener noreferrer"><span class="dot"></span>Radiation</a>
+  <a href="https://github.com/www-infinity4/Cartoon-Generator" target="_blank" rel="noopener noreferrer"><span class="dot"></span>Cartoon Generator</a>
+  <a href="https://github.com/www-infinity4/Gitpub" target="_blank" rel="noopener noreferrer"><span class="dot"></span>Gitpub</a>
+  <a href="https://github.com/www-infinity4/Situations" target="_blank" rel="noopener noreferrer"><span class="dot"></span>Situations</a>
+  <a href="https://github.com/www-infinity4/Electromagnetism" target="_blank" rel="noopener noreferrer"><span class="dot"></span>Electromagnetism</a>
+</div>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="inf-symbol">∞</div>
+  <h1>ATOM WEAVER</h1>
+  <p class="hero-tagline">
+    Resonance Laboratory &mdash; Solid-State Energy Research<br>
+    Three-Stage Resonance Ladder &nbsp;·&nbsp; Voltage as Instruction Set
+  </p>
+  <div class="hero-stats">
+    <div class="stat-card ag">
+      <div class="metal">Ag<sup>47</sup></div>
+      <div class="label">Silver · Odd/Active</div>
+      <div class="volt" style="color:var(--cyan)">1.5V gap ↓</div>
+    </div>
+    <div class="stat-card pd">
+      <div class="metal">Pd<sup>46</sup></div>
+      <div class="label">Palladium · Even/Inertia</div>
+      <div class="volt" style="color:var(--violet)">30V gap ↓</div>
+    </div>
+    <div class="stat-card cu">
+      <div class="metal">Cu<sup>29</sup></div>
+      <div class="label">Copper · Receiver</div>
+      <div class="volt" style="color:var(--gold)">31.5V total</div>
+    </div>
+  </div>
+  <div class="scroll-hint">▼ scroll to explore ▼</div>
+</section>
+
+<hr class="div">
+
+<!-- ═══ SECTION 01 — RESONANCE LADDER ═══ -->
+<section id="ladder">
+  <div class="container reveal">
+    <div class="s-label">Section 01</div>
+    <h2 class="s-title">Three-Stage Resonance Ladder</h2>
+    <div class="glow-bar"></div>
+    <p class="s-desc">
+      Stacking Copper (29) below Palladium (46) and Silver (47) creates two sequential Well Gaps — 
+      the Odd→Even spark at the top and the Inertia Crash at the bottom — turning the stack 
+      into a 31.5V solid-state power bank tapped from the Copper receiver plate.
+    </p>
+
+    <div class="ladder-grid">
+      <!-- Stack Visual -->
+      <div class="card">
+        <div class="stack-wrap">
+          <div class="plate plate-ag">
+            <div class="plate-name" style="color:var(--cyan)">Silver</div>
+            <div class="plate-num">Ag &nbsp;·&nbsp; #47 &nbsp;·&nbsp; Odd / Active</div>
+          </div>
+          <div class="gap-row">
+            <div class="gap-line"></div>
+            <div class="gap-lbl">⚡ 1.5V &mdash; Odd→Even Spark</div>
+            <div class="gap-line"></div>
+          </div>
+          <div class="plate plate-pd">
+            <div class="plate-name" style="color:var(--violet)">Palladium</div>
+            <div class="plate-num">Pd &nbsp;·&nbsp; #46 &nbsp;·&nbsp; Even / Inertia</div>
+          </div>
+          <div class="gap-row">
+            <div class="gap-line"></div>
+            <div class="gap-lbl">⚡ 30V &mdash; Inertia Crash</div>
+            <div class="gap-line"></div>
+          </div>
+          <div class="plate plate-cu">
+            <div class="plate-name" style="color:var(--gold)">Copper</div>
+            <div class="plate-num">Cu &nbsp;·&nbsp; #29 &nbsp;·&nbsp; Odd / Receiver</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Charts column -->
+      <div class="charts-col">
+        <div class="card">
+          <div class="chart-h"><canvas id="voltageChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="chart-h2"><canvas id="resonanceChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="div">
+
+<!-- ═══ SECTION 02 — CONTROLLING THE COMPUTER ═══ -->
+<section id="control">
+  <div class="container reveal">
+    <div class="s-label">Section 02</div>
+    <h2 class="s-title">Controlling the Computer</h2>
+    <div class="glow-bar"></div>
+    <p class="s-desc">
+      Atoms are fused hydrogen patterns — the "code" is encoded in the geometry of how they 
+      are bonded together. Voltage isn't just power; it's the <em>instruction set</em> that 
+      tells Beryllium which layer of Copper to resonate with.
+    </p>
+
+    <div class="ctrl-grid">
+      <!-- Be Atom visual -->
+      <div class="card be-wrap">
+        <div class="atom-ring">
+          <div class="orbit orbit-1"><div class="electron"></div></div>
+          <div class="orbit orbit-2"><div class="electron"></div></div>
+          <div class="orbit orbit-3"><div class="electron" style="top:auto;bottom:-4px;"></div></div>
+          <div class="nucleus">Be<br>4</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-family:'Orbitron',monospace;font-size:0.85rem;color:var(--indigo);letter-spacing:.06em">BERYLLIUM CONTROLLER</div>
+          <div style="font-size:0.72rem;color:var(--dim);margin-top:0.25rem">Cavity dampener &middot; Instruction router<br>Receives Pd/Ag momentum cascade</div>
+        </div>
+      </div>
+
+      <!-- Voltage instruction set -->
+      <div class="card volt-ctrl">
+        <div style="font-family:'Orbitron',monospace;font-size:0.68rem;letter-spacing:.18em;color:var(--dim);margin-bottom:0.5rem">VOLTAGE INSTRUCTION SET</div>
+        <div class="volt-display"><span id="voltVal">0.0</span><span class="volt-unit"> V</span></div>
+        <input type="range" class="volt-slider" id="voltSlider" min="0" max="30" value="0" step="0.5"
+               aria-label="Voltage control 0 to 30 volts">
+        <div style="display:flex;justify-content:space-between;font-size:0.68rem;color:var(--dim)">
+          <span>0V &mdash; Surface</span><span>15V &mdash; Core</span><span>30V &mdash; Broadcast</span>
+        </div>
+        <div style="font-family:'Orbitron',monospace;font-size:0.68rem;color:var(--dim);margin-top:1rem;margin-bottom:0.35rem">
+          Cu LATTICE — 29 ADDRESSABLE LAYERS
+        </div>
+        <div class="layer-grid" id="layerGrid"></div>
+        <div class="instr-box" id="instrBox">
+          Awaiting instruction set &mdash; slide voltage to engage Beryllium controller
+        </div>
+      </div>
+    </div>
+
+    <!-- Hydrogen fusion patterns -->
+    <div class="card" style="margin-bottom:2rem">
+      <div style="font-family:'Orbitron',monospace;font-size:0.8rem;color:var(--cyan);margin-bottom:.4rem">
+        HYDROGEN FUSION GEOMETRY
+      </div>
+      <p style="color:var(--dim);font-size:0.82rem">
+        Every element is a specific geometric arrangement of fused hydrogen patterns. 
+        The bonding geometry encodes the element's resonant frequency, inertia rating, 
+        and conductive behavior — the shape <em>is</em> the program.
+      </p>
+      <div class="h-grid" id="hGrid"></div>
+    </div>
+
+    <!-- Radar chart -->
+    <div class="card">
+      <div class="chart-h" style="height:320px"><canvas id="radarChart"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<hr class="div">
+
+<!-- ═══ SECTION 03 — PROJECTS HUB ═══ -->
+<section id="projects">
+  <div class="container reveal">
+    <div class="s-label">Section 03</div>
+    <h2 class="s-title">∞ Infinity4 Projects</h2>
+    <div class="glow-bar"></div>
+    <p class="s-desc">The full ecosystem of research, tools, and experiments from the Infinity4 laboratory.</p>
+    <div class="proj-grid" id="projGrid"></div>
+  </div>
+</section>
+
+<footer>
+  <div class="f-logo">∞ ATOM WEAVER</div>
+  <p>Resonance Laboratory &nbsp;&middot;&nbsp; Cu / Pd / Ag Three-Stage Stack</p>
+  <p style="margin-top:.4rem;font-size:.72rem;opacity:.45">www-infinity4 &nbsp;&middot;&nbsp; Solid-State Energy Research</p>
+</footer>
+
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  1. PARTICLE / GRID BACKGROUND
+// ══════════════════════════════════════════════════════════════════
+const bgCanvas = document.getElementById('bgCanvas');
+const bCtx = bgCanvas.getContext('2d');
+let W, H;
+const particles = [];
+
+function resizeBg() {
+  W = bgCanvas.width  = window.innerWidth;
+  H = bgCanvas.height = window.innerHeight;
+}
+resizeBg();
+window.addEventListener('resize', resizeBg);
+
+const COLORS = ['#6366f1','#8b5cf6','#00d4ff','#a78bfa','#c4b5fd'];
+
+class Particle {
+  constructor() { this.init(); }
+  init() {
+    this.x  = Math.random() * W;
+    this.y  = Math.random() * H;
+    this.r  = 0.5 + Math.random() * 2;
+    this.vx = (Math.random() - 0.5) * 0.2;
+    this.vy = -(0.1 + Math.random() * 0.35);
+    this.a  = 0.3 + Math.random() * 0.7;
+    this.c  = COLORS[Math.floor(Math.random() * COLORS.length)];
+  }
+  update() {
+    this.x += this.vx; this.y += this.vy;
+    if (this.y < -4 || this.x < -4 || this.x > W + 4) this.init();
+  }
+  draw() {
+    bCtx.beginPath();
+    bCtx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+    bCtx.fillStyle = this.c;
+    bCtx.globalAlpha = this.a;
+    bCtx.fill();
+    bCtx.globalAlpha = 1;
+  }
+}
+
+for (let i = 0; i < 140; i++) particles.push(new Particle());
+
+function animBg() {
+  bCtx.clearRect(0, 0, W, H);
+  // faint grid
+  bCtx.strokeStyle = 'rgba(99,102,241,0.04)';
+  bCtx.lineWidth = 0.5;
+  for (let x = 0; x < W; x += 70) { bCtx.beginPath(); bCtx.moveTo(x,0); bCtx.lineTo(x,H); bCtx.stroke(); }
+  for (let y = 0; y < H; y += 70) { bCtx.beginPath(); bCtx.moveTo(0,y); bCtx.lineTo(W,y); bCtx.stroke(); }
+  particles.forEach(p => { p.update(); p.draw(); });
+  requestAnimationFrame(animBg);
+}
+animBg();
+
+// ══════════════════════════════════════════════════════════════════
+//  2. HAMBURGER
+// ══════════════════════════════════════════════════════════════════
+const hamburger = document.getElementById('hamburger');
+const navMenu   = document.getElementById('navMenu');
+
+hamburger.addEventListener('click', () => {
+  const open = hamburger.classList.toggle('open');
+  navMenu.classList.toggle('open', open);
+  hamburger.setAttribute('aria-expanded', String(open));
+});
+
+document.addEventListener('click', (e) => {
+  if (!hamburger.contains(e.target) && !navMenu.contains(e.target)) {
+    hamburger.classList.remove('open');
+    navMenu.classList.remove('open');
+    hamburger.setAttribute('aria-expanded', 'false');
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════
+//  3. SCROLL REVEAL
+// ══════════════════════════════════════════════════════════════════
+const revealObs = new IntersectionObserver(
+  (entries) => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); }),
+  { threshold: 0.12 }
+);
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+// ══════════════════════════════════════════════════════════════════
+//  4. NATIVE CHART — VOLTAGE GAP (horizontal bar)
+// ══════════════════════════════════════════════════════════════════
+function drawBarChart(canvasId, bars) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  function render() {
+    const W = canvas.offsetWidth || 400;
+    const H = canvas.offsetHeight || 280;
+    canvas.width  = W * devicePixelRatio;
+    canvas.height = H * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+
+    const pad = { top:40, right:20, bottom:50, left:60 };
+    const cw = W - pad.left - pad.right;
+    const ch = H - pad.top  - pad.bottom;
+    const max = Math.max(...bars.map(b => b.value)) * 1.1;
+    const bW = cw / bars.length * 0.55;
+    const gap = cw / bars.length;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // title
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '11px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Stack Voltage Potential', W / 2, 22);
+
+    // grid lines
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.top + ch - (i / 4) * ch;
+      ctx.strokeStyle = 'rgba(139,92,246,0.15)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '9px system-ui';
+      ctx.textAlign = 'right';
+      ctx.fillText((max * i / 4).toFixed(1) + 'V', pad.left - 5, y + 3);
+    }
+
+    bars.forEach((b, i) => {
+      const bH  = (b.value / max) * ch;
+      const bX  = pad.left + i * gap + (gap - bW) / 2;
+      const bY  = pad.top + ch - bH;
+
+      // glow fill
+      const grad = ctx.createLinearGradient(bX, bY, bX, bY + bH);
+      grad.addColorStop(0, b.color.replace(')', ',0.7)').replace('rgb', 'rgba'));
+      grad.addColorStop(1, b.color.replace(')', ',0.15)').replace('rgb', 'rgba'));
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(bX, bY, bW, bH, 5);
+      ctx.fill();
+
+      // border
+      ctx.strokeStyle = b.color;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // value label
+      ctx.fillStyle = b.color;
+      ctx.font = 'bold 12px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillText(b.value + 'V', bX + bW / 2, bY - 6);
+
+      // x label
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '9px system-ui';
+      b.label.split('\n').forEach((line, li) => {
+        ctx.fillText(line, bX + bW / 2, pad.top + ch + 14 + li * 12);
+      });
+    });
+  }
+  render();
+  new ResizeObserver(render).observe(canvas.parentElement);
+}
+
+drawBarChart('voltageChart', [
+  { label: 'Ag(47)→Pd(46)\nUpper Gap',  value: 1.5,  color: '#00d4ff' },
+  { label: 'Pd(46)→Cu(29)\nLower Gap',  value: 30,   color: '#8b5cf6' },
+  { label: 'Total\nStack',              value: 31.5, color: '#ffd700' },
+]);
+
+// ══════════════════════════════════════════════════════════════════
+//  5. NATIVE CHART — RESONANCE WAVEFORMS (animated line)
+// ══════════════════════════════════════════════════════════════════
+(function drawWaveChart() {
+  const canvas = document.getElementById('resonanceChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let phase = 0;
+
+  const series = [
+    { label:'Ag (47)', color:'#00d4ff', fn: (x,p) => Math.sin(x * 0.47 * 0.28 + p * 0.8) * 0.8 + Math.sin(x * 0.2 + p * 0.3) * 0.2 },
+    { label:'Pd (46)', color:'#8b5cf6', fn: (x,p) => Math.sin(x * 0.46 * 0.28 + p * 0.6) * 1.05 },
+    { label:'Cu (29)', color:'#ffd700', fn: (x,p) => Math.sin(x * 0.29 * 0.28 + p * 0.4) * 1.6 + Math.cos(x * 0.1 + p * 0.2) * 0.25 },
+  ];
+
+  function render() {
+    const W = canvas.offsetWidth || 400;
+    const H = canvas.offsetHeight || 240;
+    canvas.width  = W * devicePixelRatio;
+    canvas.height = H * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+
+    const pad = { top:36, right:16, bottom:30, left:14 };
+    const cw = W - pad.left - pad.right;
+    const ch = H - pad.top  - pad.bottom;
+    const midY = pad.top + ch / 2;
+    const N = 120;
+    const amp = ch / 2 * 0.82;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // title
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '11px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Resonance Waveforms by Atomic Number', W / 2, 20);
+
+    // centre line
+    ctx.strokeStyle = 'rgba(139,92,246,0.12)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(pad.left, midY); ctx.lineTo(W - pad.right, midY); ctx.stroke();
+
+    series.forEach(s => {
+      ctx.beginPath();
+      ctx.strokeStyle = s.color;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = s.color;
+      ctx.shadowBlur = 6;
+      for (let i = 0; i <= N; i++) {
+        const x = pad.left + (i / N) * cw;
+        const y = midY - s.fn(i, phase) * amp;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // legend
+      const li = series.indexOf(s);
+      ctx.fillStyle = s.color;
+      ctx.font = '10px system-ui';
+      ctx.textAlign = 'left';
+      ctx.fillRect(pad.left + li * 80, H - 14, 14, 3);
+      ctx.fillText(s.label, pad.left + li * 80 + 18, H - 10);
+    });
+
+    phase += 0.025;
+    requestAnimationFrame(render);
+  }
+  render();
+})();
+
+// ══════════════════════════════════════════════════════════════════
+//  6. VOLTAGE SLIDER — 29-LAYER Cu ADDRESSING
+// ══════════════════════════════════════════════════════════════════
+const LAYERS = 29;
+
+const INSTR = [
+  'INIT: Surface contact — calibration ping',
+  'ADDR 0x02: Oxide skin — impedance match',
+  'ADDR 0x03: Grain boundary α — charge collection',
+  'ADDR 0x04: Grain boundary β — frequency lock',
+  'ADDR 0x05: Sub-surface layer — harmonic 1',
+  'ADDR 0x06: Crystalline plane [111] — carrier inject',
+  'ADDR 0x07: Crystalline plane [110] — Lorentz align',
+  'ADDR 0x08: Deep node A — energy buffer',
+  'ADDR 0x09: Deep node B — phase inversion',
+  'ADDR 0x0A: Fermi bridge — quantum tunnel threshold',
+  'ADDR 0x0B: Mid-core band — standing wave form',
+  'ADDR 0x0C: Core band α — 12V pivot',
+  'ADDR 0x0D: Core band β — 14V pivot',
+  'ADDR 0x0E: Deep core A — inertia dampening',
+  'ADDR 0x0F: Deep core B — Ag/Pd momentum relay',
+  'ADDR 0x10: Nucleus field α — max broadcast zone',
+  'ADDR 0x11: Nucleus field β — full resonance lock',
+  'ADDR 0x12: Shell K — primary signal emission',
+  'ADDR 0x13: Shell L α — secondary amplifier',
+  'ADDR 0x14: Shell L β — tertiary amplifier',
+  'ADDR 0x15: Shell M α — cascade trigger',
+  'ADDR 0x16: Shell M β — cascade hold',
+  'ADDR 0x17: Shell M γ — output modulate',
+  'ADDR 0x18: Broadcast node A — env interaction',
+  'ADDR 0x19: Broadcast node B — tricorder feed',
+  'ADDR 0x1A: Saturation layer — step-up max',
+  'ADDR 0x1B: Pre-overflow — 28V critical zone',
+  'ADDR 0x1C: Overflow gate — 29V signal clamp',
+  'ADDR 0x1D: [29/29] FULL SATURATION — 30V BROADCAST ACTIVE',
+];
+
+const layerGrid = document.getElementById('layerGrid');
+for (let i = 0; i < LAYERS; i++) {
+  const el = document.createElement('div');
+  el.className = 'cu-layer';
+  el.id = 'ly' + i;
+  el.textContent = i + 1;
+  layerGrid.appendChild(el);
+}
+
+const voltSlider = document.getElementById('voltSlider');
+const voltVal    = document.getElementById('voltVal');
+const instrBox   = document.getElementById('instrBox');
+
+function updateVolt(v) {
+  const f = parseFloat(v);
+  voltVal.textContent = f.toFixed(1);
+  const active = Math.round((f / 30) * LAYERS);
+  for (let i = 0; i < LAYERS; i++) {
+    const el = document.getElementById('ly' + i);
+    el.className = 'cu-layer';
+    if (i < active) {
+      el.classList.add('active');
+      if (i === active - 1) el.classList.add('resonating');
+    }
+  }
+  if (active === 0) {
+    instrBox.textContent = 'Awaiting instruction set — slide voltage to engage Beryllium controller';
+    instrBox.style.color = '#94a3b8';
+  } else {
+    instrBox.textContent = `[${f.toFixed(1)}V] ${INSTR[Math.min(active - 1, INSTR.length - 1)]}`;
+    instrBox.style.color = active >= LAYERS ? '#ffd700' : '#00d4ff';
+  }
+}
+
+voltSlider.addEventListener('input', e => updateVolt(e.target.value));
+
+// ══════════════════════════════════════════════════════════════════
+//  7. HYDROGEN FUSION PATTERN CARDS
+// ══════════════════════════════════════════════════════════════════
+const elements = [
+  { sym:'H¹',    col:'#94a3b8', desc:'Hydrogen · Base pattern · 1 proton · root geometry' },
+  { sym:'He⁴',   col:'#a78bfa', desc:'Helium · Dual-H tetrahedron · closed stable shell' },
+  { sym:'Li⁷',   col:'#6366f1', desc:'Lithium · 3H triplet + 4n · alkali bridge node' },
+  { sym:'Be⁹',   col:'#8b5cf6', desc:'Beryllium · 4H quad · cavity controller · dampener' },
+  { sym:'C¹²',   col:'#34d399', desc:'Carbon · 6H ring · hexagonal code lattice' },
+  { sym:'Cu²⁹',  col:'#ffd700', desc:'Copper · 29H cluster · odd/receptive · receiver plate' },
+  { sym:'Pd⁴⁶',  col:'#8b5cf6', desc:'Palladium · 46H cluster · even/inertia · well conductor' },
+  { sym:'Ag⁴⁷',  col:'#00d4ff', desc:'Silver · 47H cluster · odd/active · signal initiator' },
+];
+
+const hGrid = document.getElementById('hGrid');
+elements.forEach(el => {
+  const card = document.createElement('div');
+  card.className = 'h-card reveal';
+  card.innerHTML = `<div class="h-sym" style="color:${el.col}">${el.sym}</div><div class="h-desc">${el.desc}</div>`;
+  hGrid.appendChild(card);
+  revealObs.observe(card);
+});
+
+// ══════════════════════════════════════════════════════════════════
+//  8. NATIVE CHART — ELEMENT RESONANCE RADAR
+// ══════════════════════════════════════════════════════════════════
+(function drawRadar() {
+  const canvas = document.getElementById('radarChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let phase = 0;
+
+  const LABELS = ['Conductivity','Inertia','Receptivity','Odd\nResonance','Broadcast','Lattice\nDepth'];
+  const datasets = [
+    { label:'Cu (29)', data:[95,38,92,87,82,60], color:'#ffd700' },
+    { label:'Pd (46)', data:[68,90,28,18,38,82], color:'#8b5cf6' },
+    { label:'Ag (47)', data:[99,55,75,92,72,70], color:'#00d4ff' },
+    { label:'Be (4)',  data:[50,62,87,62,48,28], color:'#6366f1', dash:true },
+  ];
+
+  function render() {
+    const size = Math.min(canvas.offsetWidth || 360, canvas.offsetHeight || 320);
+    canvas.width  = (canvas.offsetWidth || size) * devicePixelRatio;
+    canvas.height = (canvas.offsetHeight || size) * devicePixelRatio;
+    ctx.scale(devicePixelRatio, devicePixelRatio);
+
+    const W = canvas.offsetWidth || size;
+    const H = canvas.offsetHeight || size;
+    const cx = W / 2;
+    const cy = H / 2 + 10;
+    const R  = Math.min(cx, cy) * 0.62;
+    const n  = LABELS.length;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // title
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '11px system-ui';
+    ctx.textAlign = 'center';
+    ctx.fillText('Element Resonance Profile', W / 2, 18);
+
+    // grid rings
+    for (let r = 1; r <= 4; r++) {
+      ctx.beginPath();
+      ctx.strokeStyle = 'rgba(139,92,246,0.2)';
+      ctx.lineWidth = 0.5;
+      for (let i = 0; i <= n; i++) {
+        const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+        const x = cx + Math.cos(a) * R * r / 4;
+        const y = cy + Math.sin(a) * R * r / 4;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.closePath(); ctx.stroke();
+    }
+
+    // spokes + labels
+    LABELS.forEach((lbl, i) => {
+      const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+      ctx.strokeStyle = 'rgba(139,92,246,0.2)';
+      ctx.lineWidth = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
+      ctx.stroke();
+      // label
+      const lx = cx + Math.cos(a) * (R + 20);
+      const ly = cy + Math.sin(a) * (R + 20);
+      ctx.fillStyle = '#94a3b8';
+      ctx.font = '9px system-ui';
+      ctx.textAlign = 'center';
+      lbl.split('\n').forEach((line, li) => ctx.fillText(line, lx, ly + li * 11));
+    });
+
+    // datasets
+    datasets.forEach(ds => {
+      ctx.beginPath();
+      ds.data.forEach((val, i) => {
+        const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+        const r = (val / 100) * R;
+        const x = cx + Math.cos(a) * r;
+        const y = cy + Math.sin(a) * r;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.closePath();
+      ctx.fillStyle = ds.color.replace('#', 'rgba(').replace(/([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})/i, (_,r,g,b) => `${parseInt(r,16)},${parseInt(g,16)},${parseInt(b,16)},0.12)`);
+      ctx.fill();
+      if (ds.dash) ctx.setLineDash([5,4]); else ctx.setLineDash([]);
+      ctx.strokeStyle = ds.color;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = ds.color; ctx.shadowBlur = 8;
+      ctx.stroke();
+      ctx.shadowBlur = 0; ctx.setLineDash([]);
+
+      // dots
+      ds.data.forEach((val, i) => {
+        const a = (i / n) * Math.PI * 2 - Math.PI / 2;
+        const r = (val / 100) * R;
+        ctx.beginPath();
+        ctx.arc(cx + Math.cos(a) * r, cy + Math.sin(a) * r, 3.5, 0, Math.PI * 2);
+        ctx.fillStyle = ds.color;
+        ctx.fill();
+      });
+    });
+
+    // legend
+    datasets.forEach((ds, i) => {
+      const lx = 12 + i * 80;
+      const ly = H - 14;
+      ctx.fillStyle = ds.color;
+      ctx.fillRect(lx, ly, 14, 3);
+      ctx.font = '10px system-ui';
+      ctx.textAlign = 'left';
+      ctx.fillText(ds.label, lx + 18, ly + 4);
+    });
+  }
+
+  render();
+  new ResizeObserver(render).observe(canvas.parentElement);
+})();
+
+// ══════════════════════════════════════════════════════════════════
+//  9. PROJECTS HUB
+// ══════════════════════════════════════════════════════════════════
+const PROJECTS = [
+  { name:'Atomic Transmutation', desc:'Transmutation sequences and resonance mapping',           url:'https://github.com/www-infinity4/Atomic-Transmutation', tag:'Physics' },
+  { name:'Giro',                 desc:'Operational symptomatic regulator of inertia forces',     url:'https://github.com/www-infinity4/Giro',                  tag:'Energy'  },
+  { name:'Alien Radio',          desc:'Alien sounds digital radio broadcasts',                    url:'https://github.com/www-infinity4/Alien-Radio',           tag:'Radio'   },
+  { name:'Warehouse 13',         desc:'Artifact cataloging and research storage system',          url:'https://github.com/www-infinity4/Warehouse13',           tag:'Archive' },
+  { name:'Astrolyzer',           desc:'Keyboard frequency analyzer — star creation engine',      url:'https://github.com/www-infinity4/Astrolyzer',            tag:'Audio'   },
+  { name:'Shortwave',            desc:'Digital Grundig-style all-wave radio receiver',            url:'https://github.com/www-infinity4/Shortwave',             tag:'Radio'   },
+  { name:'Escape From New York', desc:'Snake game — 10 rounds, 10 questions each',               url:'https://github.com/www-infinity4/ESCAPE-FROM-NEW-YORK',  tag:'Game'    },
+  { name:'Alien Coin',           desc:'Anndy Lian Coin V2 — next-gen digital currency',          url:'https://github.com/www-infinity4/Alien-Coin',            tag:'Crypto'  },
+  { name:'Bitcoin Tonight Coin', desc:'Research-backed coin with real hashing',                  url:'https://github.com/www-infinity4/Bitcoin-Tonight-Coin',  tag:'Crypto'  },
+  { name:'Utopia',               desc:'Government-free international community platform',        url:'https://github.com/www-infinity4/Utopia',                tag:'Society' },
+  { name:'Radiation',            desc:'Radiation control through signal emitters',               url:'https://github.com/www-infinity4/Radiation',             tag:'Physics' },
+  { name:'Electromagnetism',     desc:'Electromagnetic field research and simulation',           url:'https://github.com/www-infinity4/Electromagnetism',      tag:'Physics' },
+  { name:'Cartoon Generator',    desc:'AI-powered cartoon and illustration engine',              url:'https://github.com/www-infinity4/Cartoon-Generator',     tag:'AI'      },
+  { name:'Gitpub',               desc:'Publish and grow repositories with website builder',      url:'https://github.com/www-infinity4/Gitpub',                tag:'Tools'   },
+  { name:'Situations',           desc:'Situational intelligence and automated response system',  url:'https://github.com/www-infinity4/Situations',            tag:'AI'      },
+];
+
+const projGrid = document.getElementById('projGrid');
+PROJECTS.forEach(p => {
+  const a = document.createElement('a');
+  a.className = 'proj-card reveal';
+  a.href = p.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+  a.innerHTML = `<div class="p-name">${p.name}</div><div class="p-desc">${p.desc}</div><span class="p-tag">${p.tag}</span>`;
+  projGrid.appendChild(a);
+  revealObs.observe(a);
+});
+</script>
+</body>
+</html>
