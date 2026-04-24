@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Atom Weaver — Resonance Laboratory</title>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
     /* ── Variables ── */
     :root {
@@ -650,6 +654,8 @@ function drawBarChart(canvasId, bars) {
     const H = canvas.offsetHeight || 280;
     canvas.width  = W * devicePixelRatio;
     canvas.height = H * devicePixelRatio;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
     ctx.scale(devicePixelRatio, devicePixelRatio);
 
     const pad = { top:40, right:20, bottom:50, left:60 };
@@ -752,6 +758,8 @@ drawBarChart('voltageChart', [
     const H = canvas.offsetHeight || 240;
     canvas.width  = W * devicePixelRatio;
     canvas.height = H * devicePixelRatio;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
     ctx.scale(devicePixelRatio, devicePixelRatio);
 
     const pad = { top:36, right:16, bottom:30, left:14 };
@@ -918,12 +926,16 @@ elements.forEach(el => {
 
   function render() {
     const size = Math.min(canvas.offsetWidth || 360, canvas.offsetHeight || 320);
-    canvas.width  = (canvas.offsetWidth || size) * devicePixelRatio;
-    canvas.height = (canvas.offsetHeight || size) * devicePixelRatio;
+    const cW = canvas.offsetWidth || size;
+    const cH = canvas.offsetHeight || size;
+    canvas.width  = cW * devicePixelRatio;
+    canvas.height = cH * devicePixelRatio;
+    canvas.style.width  = cW + 'px';
+    canvas.style.height = cH + 'px';
     ctx.scale(devicePixelRatio, devicePixelRatio);
 
-    const W = canvas.offsetWidth || size;
-    const H = canvas.offsetHeight || size;
+    const W = cW;
+    const H = cH;
     const cx = W / 2;
     const cy = H / 2 + 10;
     const R  = Math.min(cx, cy) * 0.62;
